@@ -90,7 +90,7 @@ metatask_run_ensemble:
       <<: *default_vars
       SLASH_ENSMEM_SUBDIR: '&SLASH_ENSMEM_SUBDIR;'
     join: !cycstr '&LOGDIR;/{{ jobname }}_@Y@m@d@H&LOGEXT;'
-    nnodes: 4
+    nnodes: 2
     ppn: 12
     dependency:
       and: &make_ics_deps
@@ -131,7 +131,7 @@ metatask_run_ensemble:
       bcgrp: '00'
       bcgrpnum: '1'
     join: !cycstr '&LOGDIR;/{{ jobname }}_@Y@m@d@H&LOGEXT;'
-    nnodes: 4
+    nnodes: 2
     ppn: 12
     dependency:
       and:

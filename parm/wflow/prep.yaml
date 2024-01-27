@@ -51,7 +51,7 @@ task_make_sfc_climo:
   envars:
     <<: *default_envars
   join: !cycstr '&LOGDIR;/{{ jobname }}_@Y@m@d@H&LOGEXT;'
-  nnodes: 2
+  nnodes: 1
   dependency:
     and:
       or_make_grid:
