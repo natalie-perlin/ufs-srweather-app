@@ -37,7 +37,7 @@ else if ( "$L_MACHINE" == singularity ) then
 
    module purge
 
-else if ( "$L_MACHINE" == gaea ) then
+else if ( "$L_MACHINE" == gaeac5 ) then
    module reset
 
 else if ( "$L_MACHINE" == derecho ) then
