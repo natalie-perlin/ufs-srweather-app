@@ -20,8 +20,8 @@ The external model files needed for initializing an experiment can be obtained i
 ways, including: 
 
    * Pulled from the `SRW App Data Bucket <https://registry.opendata.aws/noaa-ufs-shortrangeweather/>`__,
-   * Pulled from the NOAA High Performance Storage System (:term:`HPSS`) during the workflow execution (requires user access), or 
-   * Obtained and staged by the user from a different source,
+   * Pulled from the NOAA High Performance Storage System (:term:`HPSS`) during the workflow execution (requires user access), 
+   * Obtained and staged by the user from a different source, or 
    * Pulled from the `NOAA-RRFS AWS S3 bucket <https://noaa-rrfs-pds.s3.amazonaws.com/index.html#rrfs_a/>`__, a description could be found in `NOAA Rapid Refresh Forecast System (RRFS) <https://registry.opendata.aws/noaa-rrfs/>`__.
 
 The data format for these files can be :term:`GRIB2` or :term:`NEMSIO`. More information on downloading and setting up the external model data can be found in :numref:`Section %s <DownloadingStagingInput>`. Once the data is set up, the end-to-end application will run the system and write output files to disk.
