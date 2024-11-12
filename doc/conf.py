@@ -38,7 +38,7 @@ numfig = True
 
 nitpick_ignore = [('py:class', 'obj'),('py:class', 
                    'yaml.dumper.Dumper'),('py:class', 
-                   'xml.etree.ElementTree'),]
+                   'xml.etree.ElementTree'),('py:class', 'Basemap'),]
 
 # -- General configuration ---------------------------------------------------
 
@@ -46,7 +46,6 @@ nitpick_ignore = [('py:class', 'obj'),('py:class',
 extensions = [
     'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
-    'sphinxcontrib.autoyaml',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
@@ -310,10 +309,3 @@ extlinks = {'github-docs': ('https://docs.github.com/en/%s', '%s'),
             'uw': ('https://uwtools.readthedocs.io/en/main/%s', '%s'),
             }
 
-# -- Options for autoyaml extension ---------------------------------------
-
-autoyaml_root = "../ush"
-autoyaml_doc_delimiter = "###" # Character(s) which start a documentation comment.
-autoyaml_comment = "#" #Comment start character(s).
-autoyaml_level = 6
-#autoyaml_safe_loader = False
