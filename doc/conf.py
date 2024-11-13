@@ -307,5 +307,6 @@ extlinks = {'github-docs': ('https://docs.github.com/en/%s', '%s'),
             'srw-repo': ('https://github.com/ufs-community/ufs-srweather-app/%s', '%s'),
             'srw-wiki': ('https://github.com/ufs-community/ufs-srweather-app/wiki/%s','%s'),
             'uw': ('https://uwtools.readthedocs.io/en/main/%s', '%s'),
+            'fire-ug': ('https://fire-behavior.readthedocs.io/en/latest/%s', '%s'),
             }
 
