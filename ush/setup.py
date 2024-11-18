@@ -11,6 +11,7 @@ from textwrap import dedent
 
 import yaml
 from uwtools.api.config import get_yaml_config
+from pprint import pprint
 
 from python_utils import (
     log_info,
@@ -39,31 +40,37 @@ from python_utils import (
     load_xml_file,
 )
 
-from set_cycle_dates import set_cycle_dates
+from set_cycle_and_obs_timeinfo import \
+     set_cycle_dates, set_fcst_output_times_and_obs_days_all_cycles, \
+     set_rocoto_cycledefs_for_obs_days, \
+     check_temporal_consistency_cumul_fields, \
+     get_obs_retrieve_times_by_day
 from set_predef_grid_params import set_predef_grid_params
 from set_gridparams_ESGgrid import set_gridparams_ESGgrid
 from set_gridparams_GFDLgrid import set_gridparams_GFDLgrid
 from link_fix import link_fix
 
 def load_config_for_setup(ushdir, default_config, user_config):
-    """Updates a Python dictionary in place with experiment configuration settings from the 
-    default, machine, and user configuration files. 
+    """Updates a Python dictionary in place with experiment configuration settings from the
+    default, machine, and user configuration files.
 
     Args:
       ushdir             (str): Path to the ``ush`` directory for the SRW App
       default_config     (str): Path to ``config_defaults.yaml``
-      user_config        (str): Path to the user-provided config YAML (usually named 
+      user_config        (str): Path to the user-provided config YAML (usually named
                                 ``config.yaml``)
 
     Returns:
-        None
-    
+        cfg_d            (dict): Experiment configuration dictionary based on default,
+                                 machine, and user config files
+        do_vx            (bool): Flag specifying whether workflow will run vx tasks
+
     Raises:
-        FileNotFoundError: If the user-provided configuration file or the machine file does not 
+        FileNotFoundError: If the user-provided configuration file or the machine file does not
                            exist.
-        Exception: If (1) the user-provided configuration file cannot be loaded or (2) it contains 
-                   invalid sections/keys or (3) it does not contain mandatory information or (4) 
-                   an invalid datetime format is used. 
+        Exception: If (1) the user-provided configuration file cannot be loaded or (2) it contains
+                   invalid sections/keys or (3) it does not contain mandatory information or (4)
+                   an invalid datetime format is used.
     """
 
     # Load the default config.
@@ -165,10 +172,12 @@ def load_config_for_setup(ushdir, default_config, user_config):
     if taskgroups:
         cfg_wflow['rocoto']['tasks']['taskgroups'] = taskgroups
 
+    # Save string specifying final workflow taskgroups for use later on.
+    taskgroups = cfg_wflow['rocoto']['tasks']['taskgroups']
+
     # Extend yaml here on just the rocoto section to include the
     # appropriate groups of tasks
     extend_yaml(cfg_wflow)
-
 
     # Put the entries expanded under taskgroups in tasks
     rocoto_tasks = cfg_wflow["rocoto"]["tasks"]
@@ -236,7 +245,57 @@ def load_config_for_setup(ushdir, default_config, user_config):
     except:
         pass
     cfg_d["workflow"]["EXPT_BASEDIR"] = os.path.abspath(expt_basedir)
+    #
+    # -----------------------------------------------------------------------
+    #
+    # If the workflow includes at least one verification task, ensure that
+    # the configuration parameters associated with cumulative fields (e.g.
+    # APCP) in the verification section of the experiment dicitonary are
+    # temporally consistent, e.g. that accumulation intervals are less than
+    # or equal to the forecast length.  Update the verification section of
+    # the dictionary to remove inconsistencies.
+    #
+    # -----------------------------------------------------------------------
+    #
+    # List containing the names of all workflow config files for vx (i.e.
+    # whether or not they're included in the workflow).
+    vx_taskgroup_fns = ['verify_pre.yaml', 'verify_det.yaml', 'verify_ens.yaml']
+    # Flag that specifies whether the workflow will be running any vx tasks.
+    do_vx = any([fn for fn in vx_taskgroup_fns if fn in taskgroups])
 
+    # Initialize variable containing the vx configuration.  This may be 
+    # modified within the if-statement below.
+    vx_config = cfg_d["verification"]
+
+    if do_vx:
+        workflow_config = cfg_d["workflow"]
+
+        date_first_cycl = workflow_config.get("DATE_FIRST_CYCL")
+        date_last_cycl = workflow_config.get("DATE_LAST_CYCL")
+        incr_cycl_freq = int(workflow_config.get("INCR_CYCL_FREQ"))
+        fcst_len_hrs = workflow_config.get("FCST_LEN_HRS")
+        vx_fcst_output_intvl_hrs = vx_config.get("VX_FCST_OUTPUT_INTVL_HRS")
+
+        # Convert various times and time intervals from integers or strings to
+        # datetime or timedelta objects.
+        date_first_cycl_dt = datetime.datetime.strptime(date_first_cycl, "%Y%m%d%H")
+        date_last_cycl_dt = datetime.datetime.strptime(date_last_cycl, "%Y%m%d%H")
+        cycl_intvl_dt = datetime.timedelta(hours=incr_cycl_freq)
+        fcst_len_dt = datetime.timedelta(hours=fcst_len_hrs)
+        vx_fcst_output_intvl_dt = datetime.timedelta(hours=vx_fcst_output_intvl_hrs)
+
+        # Generate a list containing the starting times of the cycles.
+        cycle_start_times \
+        = set_cycle_dates(date_first_cycl_dt, date_last_cycl_dt, cycl_intvl_dt,
+                          return_type='datetime')
+
+        # Call function that runs the consistency checks on the vx parameters.
+        vx_config, fcst_obs_matched_times_all_cycles_cumul \
+        = check_temporal_consistency_cumul_fields(
+          vx_config, cycle_start_times, fcst_len_dt, vx_fcst_output_intvl_dt)
+
+
+    cfg_d['verification'] = vx_config
     extend_yaml(cfg_d)
 
     # Do any conversions of data types
@@ -263,7 +322,7 @@ def load_config_for_setup(ushdir, default_config, user_config):
                     Mandatory variable "{val}" not found in:
                     user config file {user_config}
                                   OR
-                    machine file {machine_file} 
+                    machine file {machine_file}
                     """
                 )
             )
@@ -282,7 +341,7 @@ def load_config_for_setup(ushdir, default_config, user_config):
                 )
             )
 
-    return cfg_d
+    return cfg_d, do_vx
 
 
 def set_srw_paths(ushdir, expt_config):
@@ -295,17 +354,17 @@ def set_srw_paths(ushdir, expt_config):
     Other paths for the SRW App are set as defaults in ``config_defaults.yaml``.
 
     Args:
-        ushdir      (str) : Path to the system location of the ``ush`` directory under the 
+        ushdir      (str) : Path to the system location of the ``ush`` directory under the
                             SRW App clone
         expt_config (dict): Contains the configuration settings for the user-defined experiment
 
     Returns:
         Dictionary of configuration settings and system paths as keys/values
-    
+
     Raises:
-        KeyError: If the external repository required is not listed in the externals 
+        KeyError: If the external repository required is not listed in the externals
                   configuration file (e.g., ``Externals.cfg``)
-        FileNotFoundError: If the ``ufs-weather-model`` code containing the FV3 source code has 
+        FileNotFoundError: If the ``ufs-weather-model`` code containing the FV3 source code has
                            not been cloned properly
     """
 
@@ -366,23 +425,23 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
     time.
 
     Args:
-        USHdir          (str): The full path of the ``ush/`` directory where this script 
+        USHdir          (str): The full path of the ``ush/`` directory where this script
                                (``setup.py``) is located
-        user_config_fn  (str): The name of a user-provided configuration YAML (usually 
+        user_config_fn  (str): The name of a user-provided configuration YAML (usually
                                ``config.yaml``)
         debug          (bool): Enable extra output for debugging
 
     Returns:
         None
-    
-    Raises: 
-        ValueError: If checked configuration values are invalid (e.g., forecast length, 
+
+    Raises:
+        ValueError: If checked configuration values are invalid (e.g., forecast length,
                     ``EXPTDIR`` path)
-        FileExistsError: If ``EXPTDIR`` already exists, and ``PREEXISTING_DIR_METHOD`` is not 
+        FileExistsError: If ``EXPTDIR`` already exists, and ``PREEXISTING_DIR_METHOD`` is not
                          set to a compatible handling method
-        FileNotFoundError: If the path to a particular file does not exist or if the file itself 
+        FileNotFoundError: If the path to a particular file does not exist or if the file itself
                            does not exist at the expected path
-        TypeError: If ``USE_CUSTOM_POST_CONFIG_FILE`` or ``USE_CRTM`` are set to true but no 
+        TypeError: If ``USE_CUSTOM_POST_CONFIG_FILE`` or ``USE_CRTM`` are set to true but no
                    corresponding custom configuration file or CRTM fix file directory is set
         KeyError: If an invalid value is provided (i.e., for ``GRID_GEN_METHOD``)
     """
@@ -401,7 +460,7 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
     # user config files.
     default_config_fp = os.path.join(USHdir, "config_defaults.yaml")
     user_config_fp = os.path.join(USHdir, user_config_fn)
-    expt_config = load_config_for_setup(USHdir, default_config_fp, user_config_fp)
+    expt_config, do_vx = load_config_for_setup(USHdir, default_config_fp, user_config_fp)
 
     # Load build settings as a dictionary; will be used later to make sure the build is consistent with the user settings
     build_config_fp = os.path.join(expt_config["user"].get("EXECdir"), "build_settings.yaml")
@@ -487,7 +546,7 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
             f"""
             EXPTDIR ({exptdir}) already exists, and PREEXISTING_DIR_METHOD = {preexisting_dir_method}
 
-            To ignore this error, delete the directory, or set 
+            To ignore this error, delete the directory, or set
             PREEXISTING_DIR_METHOD = delete, or
             PREEXISTING_DIR_METHOD = rename
             in your config file.
@@ -577,66 +636,219 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
         post_meta = rocoto_tasks.get("metatask_run_ens_post", {})
         post_meta.pop("metatask_run_sub_hourly_post", None)
         post_meta.pop("metatask_sub_hourly_last_hour_post", None)
+
+
+    date_first_cycl = workflow_config.get("DATE_FIRST_CYCL")
+    date_last_cycl = workflow_config.get("DATE_LAST_CYCL")
+    incr_cycl_freq = int(workflow_config.get("INCR_CYCL_FREQ"))
+    cycl_intvl_dt = datetime.timedelta(hours=incr_cycl_freq)
     #
     # -----------------------------------------------------------------------
     #
-    # Remove all verification [meta]tasks for which no fields are specified.
+    # If running vx tasks, check and possibly reset values in expt_config
+    # and rocoto_config.
     #
     # -----------------------------------------------------------------------
     #
-    vx_fields_all = {}
-    vx_metatasks_all = {}
-
-    vx_fields_all["CCPA"] = ["APCP"]
-    vx_metatasks_all["CCPA"] = ["metatask_PcpCombine_obs",
-                                "metatask_PcpCombine_fcst_APCP_all_accums_all_mems",
-                                "metatask_GridStat_CCPA_all_accums_all_mems",
-                                "metatask_GenEnsProd_EnsembleStat_CCPA",
-                                "metatask_GridStat_CCPA_ensmeanprob_all_accums"]
-
-    vx_fields_all["NOHRSC"] = ["ASNOW"]
-    vx_metatasks_all["NOHRSC"] = ["task_get_obs_nohrsc",
-                                "metatask_PcpCombine_fcst_ASNOW_all_accums_all_mems",
-                                "metatask_GridStat_NOHRSC_all_accums_all_mems",
-                                "metatask_GenEnsProd_EnsembleStat_NOHRSC",
-                                "metatask_GridStat_NOHRSC_ensmeanprob_all_accums"]
-
-    vx_fields_all["MRMS"] = ["REFC", "RETOP"]
-    vx_metatasks_all["MRMS"] = ["metatask_GridStat_MRMS_all_mems",
-                                "metatask_GenEnsProd_EnsembleStat_MRMS",
-                                "metatask_GridStat_MRMS_ensprob"]
-
-    vx_fields_all["NDAS"] = ["ADPSFC", "ADPUPA"]
-    vx_metatasks_all["NDAS"] = ["task_run_MET_Pb2nc_obs",
-                                "metatask_PointStat_NDAS_all_mems",
-                                "metatask_GenEnsProd_EnsembleStat_NDAS",
-                                "metatask_PointStat_NDAS_ensmeanprob"]
-
-    # Get the vx fields specified in the experiment configuration.
-    vx_fields_config = expt_config["verification"]["VX_FIELDS"]
-
-    # If there are no vx fields specified, remove those tasks that are necessary
-    # for all observation types.
-    if not vx_fields_config:
-        metatask = "metatask_check_post_output_all_mems"
-        rocoto_config['tasks'].pop(metatask)
-
-    # If for a given obstype no fields are specified, remove all vx metatasks
-    # for that obstype.
-    for obstype in vx_fields_all:
-        vx_fields_obstype = [field for field in vx_fields_config if field in vx_fields_all[obstype]]
-        if not vx_fields_obstype:
-            for metatask in vx_metatasks_all[obstype]:
-                if metatask in rocoto_config['tasks']:
-                    logging.info(dedent(
-                        f"""
-                        Removing verification [meta]task
-                          "{metatask}"
-                        from workflow since no fields belonging to observation type "{obstype}"
-                        are specified for verification."""
-                    ))
-                    rocoto_config['tasks'].pop(metatask)
-
+    if do_vx:
+        #
+        # -----------------------------------------------------------------------
+        #
+        # Set some variables needed for running checks on and creating new
+        # (derived) configuration variables for the verification.
+        #
+        # -----------------------------------------------------------------------
+        #
+        vx_config = expt_config["verification"]
+    
+        fcst_len_hrs = workflow_config.get("FCST_LEN_HRS")
+        vx_fcst_output_intvl_hrs = vx_config.get("VX_FCST_OUTPUT_INTVL_HRS")
+    
+        # To enable arithmetic with dates and times, convert various time
+        # intervals from integer to datetime.timedelta objects.
+        fcst_len_dt = datetime.timedelta(hours=fcst_len_hrs)
+        vx_fcst_output_intvl_dt = datetime.timedelta(hours=vx_fcst_output_intvl_hrs)
+        #
+        # -----------------------------------------------------------------------
+        #
+        # Generate a list containing the starting times of the cycles.  This will
+        # be needed in checking that the hours-of-day of the forecast output match
+        # those of the observations.
+        #
+        # -----------------------------------------------------------------------
+        #
+        cycle_start_times \
+        = set_cycle_dates(date_first_cycl, date_last_cycl, cycl_intvl_dt,
+                          return_type='datetime')
+        #
+        # -----------------------------------------------------------------------
+        #
+        # Generate a list of forecast output times and a list of obs days (i.e.
+        # days on which observations are needed to perform verification because
+        # there is forecast output on those days) over all cycles, both for
+        # instantaneous fields (e.g. T2m, REFC, RETOP) and for cumulative ones
+        # (e.g. APCP).  Then add these lists to the dictionary containing workflow
+        # configuration variables.  These will be needed in generating the ROCOTO
+        # XML.
+        #
+        # -----------------------------------------------------------------------
+        #
+        fcst_output_times_all_cycles, obs_days_all_cycles, \
+        = set_fcst_output_times_and_obs_days_all_cycles(
+          cycle_start_times, fcst_len_dt, vx_fcst_output_intvl_dt)
+    
+        workflow_config['OBS_DAYS_ALL_CYCLES_INST'] = obs_days_all_cycles['inst']
+        workflow_config['OBS_DAYS_ALL_CYCLES_CUMUL'] = obs_days_all_cycles['cumul']
+        #
+        # -----------------------------------------------------------------------
+        #
+        # Generate lists of ROCOTO cycledef strings corresonding to the obs days
+        # for instantaneous fields and those for cumulative ones.  Then save the
+        # lists of cycledefs in the dictionary containing values needed to
+        # construct the ROCOTO XML.
+        #
+        # -----------------------------------------------------------------------
+        #
+        cycledefs_obs_days_inst = set_rocoto_cycledefs_for_obs_days(obs_days_all_cycles['inst'])
+        cycledefs_obs_days_cumul = set_rocoto_cycledefs_for_obs_days(obs_days_all_cycles['cumul'])
+    
+        rocoto_config['cycledefs']['cycledefs_obs_days_inst'] = cycledefs_obs_days_inst
+        rocoto_config['cycledefs']['cycledefs_obs_days_cumul'] = cycledefs_obs_days_cumul
+        #
+        # -----------------------------------------------------------------------
+        #
+        # Generate dictionary of dictionaries that, for each combination of obs
+        # type needed and obs day, contains a string list of the times at which
+        # that type of observation is needed on that day.  The elements of each
+        # list are formatted as 'YYYYMMDDHH'.  This information is used by the
+        # day-based get_obs tasks in the workflow to get obs only at those times
+        # at which they are needed (as opposed to for the whole day).
+        #
+        # -----------------------------------------------------------------------
+        #
+        obs_retrieve_times_by_day \
+        = get_obs_retrieve_times_by_day(
+          vx_config, cycle_start_times, fcst_len_dt,
+          fcst_output_times_all_cycles, obs_days_all_cycles)
+    
+        for obtype, obs_days_dict in obs_retrieve_times_by_day.items():
+            for obs_day, obs_retrieve_times in obs_days_dict.items():
+                array_name = '_'.join(["OBS_RETRIEVE_TIMES", obtype, obs_day])
+                vx_config[array_name] = obs_retrieve_times
+        expt_config["verification"] = vx_config
+        #
+        # -----------------------------------------------------------------------
+        #
+        # Remove all verification (meta)tasks for which no fields are specified.
+        #
+        # -----------------------------------------------------------------------
+        #
+        vx_field_groups_all_by_obtype = {}
+        vx_metatasks_all_by_obtype = {}
+    
+        vx_field_groups_all_by_obtype["CCPA"] = ["APCP"]
+        vx_metatasks_all_by_obtype["CCPA"] \
+        = ["task_get_obs_ccpa",
+           "metatask_PcpCombine_APCP_all_accums_obs_CCPA",
+           "metatask_PcpCombine_APCP_all_accums_all_mems",
+           "metatask_GridStat_APCP_all_accums_all_mems",
+           "metatask_GenEnsProd_EnsembleStat_APCP_all_accums",
+           "metatask_GridStat_APCP_all_accums_ensmeanprob"]
+    
+        vx_field_groups_all_by_obtype["NOHRSC"] = ["ASNOW"]
+        vx_metatasks_all_by_obtype["NOHRSC"] \
+        = ["task_get_obs_nohrsc",
+           "metatask_PcpCombine_ASNOW_all_accums_obs_NOHRSC",
+           "metatask_PcpCombine_ASNOW_all_accums_all_mems",
+           "metatask_GridStat_ASNOW_all_accums_all_mems",
+           "metatask_GenEnsProd_EnsembleStat_ASNOW_all_accums",
+           "metatask_GridStat_ASNOW_all_accums_ensmeanprob"]
+    
+        vx_field_groups_all_by_obtype["MRMS"] = ["REFC", "RETOP"]
+        vx_metatasks_all_by_obtype["MRMS"] \
+        = ["task_get_obs_mrms",
+           "metatask_GridStat_REFC_RETOP_all_mems",
+           "metatask_GenEnsProd_EnsembleStat_REFC_RETOP",
+           "metatask_GridStat_REFC_RETOP_ensprob"]
+    
+        vx_field_groups_all_by_obtype["NDAS"] = ["SFC", "UPA"]
+        vx_metatasks_all_by_obtype["NDAS"] \
+        = ["task_get_obs_ndas",
+           "task_run_MET_Pb2nc_obs_NDAS",
+           "metatask_PointStat_SFC_UPA_all_mems",
+           "metatask_GenEnsProd_EnsembleStat_SFC_UPA",
+           "metatask_PointStat_SFC_UPA_ensmeanprob"]
+    
+        # If there are no field groups specified for verification, remove those
+        # tasks that are common to all observation types.
+        vx_field_groups = vx_config["VX_FIELD_GROUPS"]
+        if not vx_field_groups:
+            metatask = "metatask_check_post_output_all_mems"
+            rocoto_config['tasks'].pop(metatask)
+    
+        # If for a given obs type none of its field groups are specified for
+        # verification, remove all vx metatasks for that obs type.
+        for obtype in vx_field_groups_all_by_obtype:
+            vx_field_groups_crnt_obtype = list(set(vx_field_groups) & set(vx_field_groups_all_by_obtype[obtype]))
+            if not vx_field_groups_crnt_obtype:
+                for metatask in vx_metatasks_all_by_obtype[obtype]:
+                    if metatask in rocoto_config['tasks']:
+                        logging.info(dedent(
+                            f"""
+                            Removing verification (meta)task
+                              "{metatask}"
+                            from workflow since no field groups from observation type "{obtype}" are
+                            specified for verification."""
+                        ))
+                        rocoto_config['tasks'].pop(metatask)
+        #
+        # -----------------------------------------------------------------------
+        #
+        # If there are at least some field groups to verify, then make sure that
+        # the base directories in which retrieved obs files will be placed are
+        # distinct for the different obs types.
+        #
+        # -----------------------------------------------------------------------
+        #
+        if vx_field_groups:
+            obtypes_all = ['CCPA', 'NOHRSC', 'MRMS', 'NDAS']
+            obs_basedir_var_names = [f'{obtype}_OBS_DIR' for obtype in obtypes_all]
+            obs_basedirs_dict = {key: vx_config[key] for key in obs_basedir_var_names}
+            obs_basedirs_orig = list(obs_basedirs_dict.values())
+            obs_basedirs_uniq = list(set(obs_basedirs_orig))
+            if len(obs_basedirs_orig) != len(obs_basedirs_uniq):
+                msg1 = dedent(f"""
+                    The base directories for the obs files must be distinct, but at least two
+                    are identical:""")
+                msg2 = ''
+                for obs_basedir_var_name, obs_dir in obs_basedirs_dict.items():
+                    msg2 = msg2 + dedent(f"""
+                        {obs_basedir_var_name} = {obs_dir}""")
+                msg3 = dedent(f"""
+                    Modify these in the SRW App's user configuration file to make them distinct
+                    and rerun.
+                    """)
+                msg = msg1 + '    '.join(msg2.splitlines(True)) + msg3
+                logging.error(msg)
+                raise ValueError(msg)
+    #
+    # -----------------------------------------------------------------------
+    #
+    # The "cycled_from_second" cycledef in the default workflow configuration
+    # file (default_workflow.yaml) requires the starting date of the second
+    # cycle.  That is difficult to calculate in the yaml file itself because
+    # currently, there are no utilities to perform arithmetic with dates.
+    # Thus, we calculate it here and save it as a variable in the workflow
+    # configuration dictionary.  Note that correct functioning of the default
+    # workflow yaml file also requires that DATE_[FIRST|SECOND|LAST]_CYCL all
+    # be strings, not datetime objects.  We perform those conversions here.
+    #
+    # -----------------------------------------------------------------------
+    #
+    date_second_cycl = date_first_cycl + cycl_intvl_dt
+    workflow_config['DATE_FIRST_CYCL'] = datetime.datetime.strftime(date_first_cycl, "%Y%m%d%H")
+    workflow_config['DATE_SECOND_CYCL'] = datetime.datetime.strftime(date_second_cycl, "%Y%m%d%H")
+    workflow_config['DATE_LAST_CYCL'] = datetime.datetime.strftime(date_last_cycl, "%Y%m%d%H")
     #
     # -----------------------------------------------------------------------
     #
@@ -801,11 +1013,6 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
 
     run_envir = expt_config["user"].get("RUN_ENVIR", "")
 
-    fcst_len_hrs = workflow_config.get("FCST_LEN_HRS")
-    date_first_cycl = workflow_config.get("DATE_FIRST_CYCL")
-    date_last_cycl = workflow_config.get("DATE_LAST_CYCL")
-    incr_cycl_freq = int(workflow_config.get("INCR_CYCL_FREQ"))
-
     # set varying forecast lengths only when fcst_len_hrs=-1
     if fcst_len_hrs == -1:
         fcst_len_cycl = workflow_config.get("FCST_LEN_CYCL")
@@ -817,12 +1024,12 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
             num_cycles = len(set_cycle_dates(
                 date_first_cycl,
                 date_last_cycl,
-                incr_cycl_freq))
+                cycl_intvl_dt))
 
             if num_cycles != len(fcst_len_cycl):
               logger.error(f""" The number of entries in FCST_LEN_CYCL does
               not divide evenly into a 24 hour day or the number of cycles
-              in your experiment! 
+              in your experiment!
                 FCST_LEN_CYCL = {fcst_len_cycl}
               """
               )
@@ -1203,7 +1410,7 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
         post_output_domain_name = lowercase(post_output_domain_name)
 
     # Write updated value of POST_OUTPUT_DOMAIN_NAME back to dictionary
-    post_config["POST_OUTPUT_DOMAIN_NAME"] = post_output_domain_name 
+    post_config["POST_OUTPUT_DOMAIN_NAME"] = post_output_domain_name
 
     #
     # -----------------------------------------------------------------------
@@ -1653,8 +1860,8 @@ def clean_rocoto_dict(rocotodict):
 
     1. A task dictionary containing no "command" key
     2. A metatask dictionary containing no task dictionaries
-    
-    Args: 
+
+    Args:
         rocotodict (dict): A dictionary containing Rocoto workflow settings
     """
 

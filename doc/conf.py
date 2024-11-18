@@ -253,7 +253,7 @@ epub_exclude_files = ['search.html']
 # -- Options for autodoc extension ---------------------------------------
 
 autodoc_mock_imports = ["f90nml","cartopy","mpl_toolkits.basemap","fill_jinja_template",
-   "matplotlib","numpy","uwtools","mpl_toolkits",
+   "matplotlib","numpy","uwtools","mpl_toolkits","metplus",
    ]
 
 logger = logging.getLogger(__name__)
@@ -309,4 +309,12 @@ extlinks = {'github-docs': ('https://docs.github.com/en/%s', '%s'),
             'uw': ('https://uwtools.readthedocs.io/en/main/%s', '%s'),
             'fire-ug': ('https://fire-behavior.readthedocs.io/en/latest/%s', '%s'),
             }
+
+# Define environment variables that need to exist when running the top-level code in python
+# files (outside of functions, classes, etc.).
+#
+# METPLUS_ROOT just needs to exist in the environment; its value is not important since for
+# the purpose of building the documentation, METplus is loaded by including "metplus" in
+# the autodoc_mock_imports list above, not via use of the METPLUS_ROOT environment variable.
+os.environ["METPLUS_ROOT"] = ""
 

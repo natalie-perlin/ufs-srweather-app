@@ -26,7 +26,7 @@ Glossary
 
    chgres_cube
        The preprocessing software used to create initial and boundary condition files to 
-       “cold start” the forecast model. It is part of :term:`UFS_UTILS`.
+       "cold start" the forecast model. It is part of :term:`UFS_UTILS`.
 
    CIN
       Convective Inhibition.
@@ -47,6 +47,9 @@ Glossary
 
    Component Repository
       A :term:`repository` that contains, at a minimum, source code for a single component.
+
+   composite reflectivity
+      `Composite reflectivity <https://glossary.ametsoc.org/wiki/Composite_reflectivity>`__ is a display or mapping of the maximum radar reflectivity factor at any altitude as a function of position on the ground.
 
    Container
       `Docker <https://www.docker.com/resources/what-container>`__ describes a container as "a standard unit of software that packages up code and all its dependencies so the application runs quickly and reliably from one computing environment to another."
@@ -70,6 +73,9 @@ Glossary
    data assimilation
       Data assimilation is the process of combining observations, model data, and error statistics to achieve the best estimate of the state of a system. One of the major sources of error in weather and climate forecasts is uncertainty related to the initial conditions that are used to generate future predictions. Even the most precise instruments have a small range of unavoidable measurement error, which means that tiny measurement errors (e.g., related to atmospheric conditions and instrument location) can compound over time. These small differences result in very similar forecasts in the short term (i.e., minutes, hours), but they cause widely divergent forecasts in the long term. Errors in weather and climate forecasts can also arise because models are imperfect representations of reality. Data assimilation systems seek to mitigate these problems by combining the most timely observational data with a "first guess" of the atmospheric state (usually a previous forecast) and other sources of data to provide a "best guess" analysis of the atmospheric state to start a weather or climate simulation. When combined with an "ensemble" of model runs (many forecasts with slightly different conditions), data assimilation helps predict a range of possible atmospheric states, giving an overall measure of uncertainty in a given forecast.
 
+   DTC
+      The `Developmental Testbed Center <https://dtcenter.org>`__ is a distributed facility where the NWP community can test and evaluate new models and techniques for use in research and operations.
+
    dycore
    dynamical core
       Global atmospheric model based on fluid dynamics principles, including Euler's equations of motion.
@@ -87,7 +93,7 @@ Glossary
       Extended Schmidt Gnomonic (ESG) grid. The ESG grid uses the map projection developed by Jim Purser of NOAA :term:`EMC` (:cite:t:`Purser_2020`). 
 
    ESMF
-      `Earth System Modeling Framework <https://earthsystemmodeling.org/docs/release/latest/ESMF_usrdoc/>`__. The ESMF defines itself as “a suite of software tools for developing high-performance, multi-component Earth science modeling applications.” 
+      `Earth System Modeling Framework <https://earthsystemmodeling.org/docs/release/latest/ESMF_usrdoc/>`__. The ESMF defines itself as "a suite of software tools for developing high-performance, multi-component Earth science modeling applications."
 
    ex-scripts
       Scripting layer (contained in ``ufs-srweather-app/scripts/``) that should be called by a :term:`J-job <J-jobs>` for each workflow componentto run a specific task or sub-task in the workflow. The different scripting layers are described in detail in the :nco:`NCO Implementation Standards document <ImplementationStandards.v11.0.0.pdf>`
@@ -152,6 +158,9 @@ Glossary
    MERRA2
       The `Modern-Era Retrospective analysis for Research and Applications, Version 2 <https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/>`__ provides satellite observation data back to 1980. According to NASA, "It was introduced to replace the original MERRA dataset because of the advances made in the assimilation system that enable assimilation of modern hyperspectral radiance and microwave observations, along with GPS-Radio Occultation datasets. It also uses NASA's ozone profile observations that began in late 2004. Additional advances in both the GEOS model and the GSI assimilation system are included in MERRA-2. Spatial resolution remains about the same (about 50 km in the latitudinal direction) as in MERRA."
 
+   MET
+      The `Model Evaluation Tools <https://dtcenter.org/community-code/model-evaluation-tools-met>`__ is a highly-configurable, state-of-the-art suite of verification tools developed at the :term:`DTC`.
+
    MPI
       MPI stands for Message Passing Interface. An MPI is a standardized communication system used in parallel programming. It establishes portable and efficient syntax for the exchange of messages and data between multiple processors that are used by a single computer program. An MPI is required for high-performance computing (HPC) systems.
 
@@ -215,7 +224,7 @@ Glossary
       The branch of physical geography dealing with mountains.
 
    Parameterizations
-      Simplified functions that approximate the effects of small-scale processes (e.g., microphysics, gravity wave drag) that cannot be explicitly resolved by a model grid’s representation of the earth.
+      Simplified functions that approximate the effects of small-scale processes (e.g., microphysics, gravity wave drag) that cannot be explicitly resolved by a model grid's representation of the earth.
 
    RAP
       `Rapid Refresh <https://rapidrefresh.noaa.gov/>`__. The continental-scale NOAA hourly-updated assimilation/modeling system operational at :term:`NCEP`. RAP covers North America and is comprised primarily of a numerical forecast model and an analysis/assimilation system to initialize that model. RAP is complemented by the higher-resolution 3km High-Resolution Rapid Refresh (:term:`HRRR`) model.
