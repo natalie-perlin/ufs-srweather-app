@@ -111,7 +111,11 @@ export OMP_STACKSIZE=${OMP_STACKSIZE_MAKE_SFC_CLIMO}
 #
 #-----------------------------------------------------------------------
 #
-ulimit -s unlimited
+if [[ "$MACHINE" == "MACOS" ]] ; then
+   ulimit -s -S unlimited
+else
+   ulimit -s unlimited
+fi
 #
 #-----------------------------------------------------------------------
 #

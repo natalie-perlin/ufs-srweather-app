@@ -235,6 +235,11 @@ if [ "${BUILD_CONDA}" = "on" ] ; then
   conda activate
   if ! conda env list | grep -q "^srw_app\s" ; then
     mamba env create -n srw_app --file environment.yml
+    if [ "${os}" == "MacOSX" ] ; then 
+       conda activate srw_app
+       conda install -y -c conda-forge netcdf4
+       conda deactivate
+    fi
   fi
   if ! conda env list | grep -q "^srw_graphics\s" ; then
     mamba env create -n srw_graphics --file graphics_environment.yml
@@ -353,10 +358,11 @@ else
       printf "[C]ontinue building in the existing directory\n"
       printf "[Q]uit this build script\n"
       read -p "Choose an option (R/C/Q):" choice
+      echo "Your choice is : ${choice}"  
       case ${choice} in
-        [Rr]* ) rm -rf ${BUILD_DIR}; break ;;
-        [Cc]* ) break ;;
-        [Qq]* ) exit ;;
+        [Rr]* ) echo "Remove the build dir"; rm -rf ${BUILD_DIR}; break ;;
+        [Cc]* ) echo "Continue ..."; break ;;
+        [Qq]* ) echo "Exit the build"; exit ;;
         * ) printf "Invalid option selected.\n" ;;
       esac
     done
@@ -470,10 +476,16 @@ else
     module use ${SRW_DIR}/modulefiles
     module load ${MODULE_FILE}
     if [[ "${PLATFORM}" == "macos" ]]; then
-        export LDFLAGS+=" -L$MPI_ROOT/lib "
+        [[ -z "${HISTFILE+x}" ]] && export HISTFILE=${USER:-}/.bash_ethernal_history
+        [[ -z "${HISTTIMEFORMAT+x}" ]] && export HISTTIMEFORMAT="[%F %T] "
+        export LDFLAGS+=" -L${libjpeg_turbo_ROOT}/lib -ljpeg -Wl,-rpath,${libjpeg_turbo_ROOT}/lib -L${jasper_ROOT}/lib -ljasper -Wl,-rpath,${jasper_ROOT}/lib -L${libpng_ROOT}/lib -lpng -Wl,-rpath,${libpng_ROOT}/lib "
     fi
 fi
 module list
+
+if [[ "${PLATFORM}" == "macos" ]]; then
+   gsed -i'.backup' "s:LINKER_LANGUAGE Fortran:LINKER_LANGUAGE CXX:" ./sorc/ufs-weather-model/CMakeLists.txt
+fi
 
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
