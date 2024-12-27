@@ -10,12 +10,12 @@ if mode() == "load" then
 end
 
 
-prepend_path("MODULEPATH", "/Users/username/spack-stack/spack-stack-1.8.0/envs/ufs-wm-env/install/modulefiles/Core")
+prepend_path("MODULEPATH", "/Users/username/spack-stack/spack-stack-1.8.0/envs/ufs-srw-env/install/modulefiles/Core")
 
 stack_gnu_ver=os.getenv("stack_apple_clang_ver") or "15.0.0"
 load(pathJoin("stack-apple-clang", stack_gnu_ver))
 
-stack_openmpi_ver=os.getenv("stack_openmpi_ver") or "4.1.6"
+stack_openmpi_ver=os.getenv("stack_openmpi_ver") or "5.0.3"
 load(pathJoin("stack-openmpi", stack_openmpi_ver))
 
 cmake_ver=os.getenv("cmake_ver") or "3.27.9"
@@ -40,3 +40,9 @@ setenv("CMAKE_Fortran_COMPILER_ID", "GNU")
 
 setenv("CFLAGS","-Wno-implicit-function-declaration ")
 
+if mode() == "load" then
+  LmodMsgRaw([===[
+   Please export these env. variables after the module is successfully loaded:
+       > export LDFLAGS+=" -L${libjpeg_turbo_ROOT}/lib -ljpeg -Wl,-rpath,$libjpeg_turbo_ROOT}/lib -L${jasper_ROOT}/lib -ljasper -Wl,-rpath,${jasper_ROOT}/lib -L${libpng_ROOT}/lib -lpng -Wl,-rpath,${libpng_ROOT}/lib "
+  ]===])
+end
