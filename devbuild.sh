@@ -358,11 +358,10 @@ else
       printf "[C]ontinue building in the existing directory\n"
       printf "[Q]uit this build script\n"
       read -p "Choose an option (R/C/Q):" choice
-      echo "Your choice is : ${choice}"  
       case ${choice} in
-        [Rr]* ) echo "Remove the build dir"; rm -rf ${BUILD_DIR}; break ;;
-        [Cc]* ) echo "Continue ..."; break ;;
-        [Qq]* ) echo "Exit the build"; exit ;;
+        [Rr]* ) rm -rf ${BUILD_DIR}; break ;;
+        [Cc]* ) break ;;
+        [Qq]* ) exit ;;
         * ) printf "Invalid option selected.\n" ;;
       esac
     done
