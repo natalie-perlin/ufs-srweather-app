@@ -20,13 +20,13 @@ task_get_extrn_ics:
   EXTRN_MDL_NAME_ICS: FV3GFS
   FV3GFS_FILE_FMT_ICS: grib2
   USE_USER_STAGED_EXTRN_FILES: true
-  EXTRN_MDL_SOURCE_BASEDIR_ICS: "/Users/username/UFS_SRW_data/input_model_data/FV3GFS/grib2/2019061518"
+  EXTRN_MDL_SOURCE_BASEDIR_ICS: "/Users/username/DATA/UFS/input_model_data/FV3GFS/grib2/2019061518"
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: FV3GFS
   LBC_SPEC_INTVL_HRS: 6
   FV3GFS_FILE_FMT_LBCS: grib2
   USE_USER_STAGED_EXTRN_FILES: true
-  EXTRN_MDL_SOURCE_BASEDIR_LBCS: "/Users/username/UFS_SRW_data/input_model_data/FV3GFS/grib2/2019061518"
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: "/Users/username/DATA/UFS/input_model_data/FV3GFS/grib2/2019061518"
 task_run_fcst:
   QUILTING: true
   LAYOUT_X: 3
