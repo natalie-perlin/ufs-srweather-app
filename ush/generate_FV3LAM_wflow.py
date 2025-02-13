@@ -315,12 +315,13 @@ def generate_FV3LAM_wflow(
     # Set npz, which is just LEVP minus 1.
     npz = LEVP - 1
     #
-    # For the physics suites that use RUC LSM, set the parameter kice to 9,
+    # For the physics suites that use RUC LSM and when restarting a run 
+    # (COLDSTART: false), set the parameter kice to 9,
     # Otherwise, leave it unspecified (which means it gets set to the default
     # value in the forecast model).
     #
     kice = None
-    if SDF_USES_RUC_LSM:
+    if SDF_USES_RUC_LSM and not COLDSTART:
         kice = 9
     #
     # Set lsoil, which is the number of input soil levels provided in the
@@ -337,7 +338,7 @@ def generate_FV3LAM_wflow(
     # Also, may want to set lsm here as well depending on SDF_USES_RUC_LSM.
     #
     lsoil = 4
-    if EXTRN_MDL_NAME_ICS in ("HRRR", "RAP") and SDF_USES_RUC_LSM:
+    if EXTRN_MDL_NAME_ICS in ("HRRR", "RRFS", "RAP") and SDF_USES_RUC_LSM:
         lsoil = 9
     if CCPP_PHYS_SUITE == "FV3_GFS_v15_thompson_mynn_lam3km":
         lsoil = ""

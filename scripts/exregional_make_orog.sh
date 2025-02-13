@@ -184,12 +184,12 @@ DATA="${DATA:-${raw_dir}/tmp}"
 mkdir -p "${DATA}"
 cd "${DATA}"
 #
-# Copy topography and related data files from the system directory (FIXorg)
+# Copy topography and landcover data files from the system directory (FIXorg)
 # to the temporary directory.
 #
-cp ${FIXorg}/thirty.second.antarctic.new.bin fort.15
-cp ${FIXorg}/landcover30.fixed .
-cp ${FIXorg}/gmted2010.30sec.int fort.235
+cp ${FIXorg}/topography.antarctica.ramp.30s.nc .
+cp ${FIXorg}/landcover.umd.30s.nc .
+cp ${FIXorg}/topography.gmted2010.30s.nc .
 #
 #-----------------------------------------------------------------------
 #
@@ -227,13 +227,11 @@ blat=0
 input_redirect_fn="INPS"
 orogfile="none"
 
-echo $mtnres $lonb $latb $jcap $NR $NF1 $NF2 $efac $blat > "${input_redirect_fn}"
 #
 # The following two inputs are read in as strings, so they must be quoted
 # in the input file.
 #
 echo "\"${grid_fp}\"" >> "${input_redirect_fn}"
-echo "\"$orogfile\"" >> "${input_redirect_fn}"
 echo ".false." >> "${input_redirect_fn}" #MASK_ONLY
 echo "none" >> "${input_redirect_fn}" #MERGE_FILE
 cat "${input_redirect_fn}"
