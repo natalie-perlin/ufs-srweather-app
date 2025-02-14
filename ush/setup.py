@@ -957,7 +957,7 @@ def setup(USHdir, user_config_fn="config.yaml", debug: bool = False):
     grid_config = expt_config["task_make_grid"]
 
     # Warn if user has specified a large timestep inappropriately
-    hires_ccpp_suites = ["FV3_RRFS_v1beta", "FV3_WoFS_v0", "FV3_HRRR"]
+    hires_ccpp_suites = ["FV3_RRFS_v1beta", "FV3_WoFS_v0", "FV3_HRRR", "FV3_HRRR_gf", "RRFS_sas"]
     if workflow_config["CCPP_PHYS_SUITE"] in hires_ccpp_suites:
         dt = fcst_config.get("DT_ATMOS")
         if dt:
