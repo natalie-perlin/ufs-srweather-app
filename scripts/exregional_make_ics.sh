@@ -566,7 +566,7 @@ case "${EXTRN_MDL_NAME_ICS}" in
   minmax_vgfrc_from_climo=True
   lai_from_climo=True
   tg3_from_soil=True
-  convert_nst=True
+  convert_nst=False
   ;;
 
 "RAP")
