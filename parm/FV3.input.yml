@@ -783,6 +783,8 @@ RRFS_sas:
     sfclay_compute_flux: true
     sigmab_coldstart : true
     thsfc_loc: false
+    nst_anl: null
+    nstf_name: null
     # Smoke/dust options
     rrfs_sd : false
     rrfs_smoke_debug : false
