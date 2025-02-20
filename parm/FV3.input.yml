@@ -775,8 +775,8 @@ RRFS_sas:
     ldiag_ugwp: false
     lgfdlmprad: false
     lightning_threat: true
-    mosaic_lu: 1
-    mosaic_soil: 1
+    mosaic_lu: 0
+    mosaic_soil: 0
     isncond_opt: 2
     isncovr_opt: 3
     progsigma: true
