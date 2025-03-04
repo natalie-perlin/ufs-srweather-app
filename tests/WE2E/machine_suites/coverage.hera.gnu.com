@@ -8,7 +8,6 @@ grid_SUBCONUS_Ind_3km_ics_HRRR_lbcs_RAP_suite_WoFS_v0
 grid_SUBCONUS_Ind_3km_ics_HRRR_lbcs_HRRR_suite_RRFS_sas_plot
 long_fcst
 MET_verification_only_vx
-MET_ensemble_verification_only_vx_time_lag
 2019_halloween_storm
 2020_jan_cold_blast
 vx-det_long-fcst_custom-vx-config_aiml-fourcastnet
