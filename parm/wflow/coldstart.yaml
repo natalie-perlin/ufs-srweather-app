@@ -91,8 +91,7 @@ metatask_run_ensemble:
       SLASH_ENSMEM_SUBDIR: '&SLASH_ENSMEM_SUBDIR;'
     join: !cycstr '&LOGDIR;/{{ jobname }}_@Y@m@d@H&LOGEXT;'
     nnodes: 4
-    ppn: 1
-    partition: bigmem
+    ppn: 12
     dependency:
       and: &make_ics_deps
         taskdep_get_extrn:
@@ -133,8 +132,7 @@ metatask_run_ensemble:
       bcgrpnum: '1'
     join: !cycstr '&LOGDIR;/{{ jobname }}_@Y@m@d@H&LOGEXT;'
     nnodes: 4
-    ppn: 1
-    partition: bigmem
+    ppn: 12
     walltime: 01:00:00
     dependency:
       and:
