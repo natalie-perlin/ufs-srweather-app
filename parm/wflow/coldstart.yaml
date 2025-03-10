@@ -133,6 +133,7 @@ metatask_run_ensemble:
     join: !cycstr '&LOGDIR;/{{ jobname }}_@Y@m@d@H&LOGEXT;'
     nnodes: 4
     ppn: 12
+    walltime: 01:00:00
     dependency:
       and:
         <<: *make_ics_deps
@@ -209,3 +210,19 @@ metatask_run_ensemble:
           taskdep:
             attrs:
               task: aqm_lbcs
+        or_smoke_dust:
+          not:
+            taskvalid:
+              attrs:
+                task: smoke_dust
+          taskdep:
+            attrs:
+              task: smoke_dust
+        or_prepstart:
+          not:
+            taskvalid:
+              attrs:
+                task: prepstart
+          taskdep:
+            attrs:
+              task: prepstart

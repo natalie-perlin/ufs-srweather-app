@@ -29,4 +29,5 @@ ush
    set_leadhrs
    set_predef_grid_params
    setup
+   smoke_dust
    update_input_nml
