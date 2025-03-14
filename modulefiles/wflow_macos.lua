@@ -19,8 +19,8 @@ prepend_path("PATH", pathJoin(srw_path, "ush/rocoto_fake_slurm"))
 
 -- display conda activation message
 if mode() == "load" then
-   LmodMsgRaw([===[Please do the following to activate conda virtual environment:
-       > conda activate srw_app"
+   LmodMsgRaw([===[Please run the following to activate conda virtual environment:
+     >  conda activate srw_app
 ]===])
 end
 
