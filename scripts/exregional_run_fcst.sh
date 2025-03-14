@@ -469,7 +469,12 @@ if [ $(boolify "${USE_MERRA_CLIMO}") = "TRUE" ]; then
     pre_f="${f_nm%%.*}"
 
     if [ "${pre_f}" = "merra2" ]; then
-      mnth=$( printf "%s\n" "${f_nm}" | grep -o -P '(?<=2014.m).*(?=.nc)' )
+      if [[ "$MACHINE" == "MACOS" ]] ; then
+        mnth=$( printf "%s\n" "${f_nm}" | ggrep -o -P '(?<=2014.m).*(?=.nc)' )
+      else
+        mnth=$( printf "%s\n" "${f_nm}" | grep -o -P '(?<=2014.m).*(?=.nc)' )
+      fi
+      if [[ "$MACHINE" == "MACOS" ]] ; then
       symlink="${DATA}/aeroclim.m${mnth}.nc"
     else
       symlink="${DATA}/${pre_f}.dat"
