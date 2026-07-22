@@ -1,60 +1,73 @@
 metadata:
   description: 
-    Sample community case
+    Sample community config
 user:
   RUN_ENVIR: community
   MACHINE: macos
   ACCOUNT: an_account
 workflow:
-  CCPP_PHYS_SUITE: RRFS_sas
-  PREDEF_GRID_NAME: SUBCONUS_Ind_3km
-  DATE_FIRST_CYCL: '2020081000'
-  DATE_LAST_CYCL: '2020081000'
-  FCST_LEN_HRS: 3
+  USE_CRON_TO_RELAUNCH: false
+  GRID_GEN_METHOD: ESGgrid
+  EXPT_SUBDIR: Palisades_f84h
+  CCPP_PHYS_SUITE: FV3_WoFS_v0
+  DATE_FIRST_CYCL: '2025010618'
+  DATE_LAST_CYCL: '2025010918'
+  FCST_LEN_HRS: 84
   PREEXISTING_DIR_METHOD: rename
+  VERBOSE: true
   COMPILER: gnu
-  EXPT_SUBDIR: grid_SUBCONUS_Ind_3km_ics_RRFS_sas
+task_make_grid:
+  ESGgrid_LON_CTR: -118.50
+  ESGgrid_LAT_CTR: 34.50
+  ESGgrid_DELX: 1000.0
+  ESGgrid_DELY: 1000.0
+  ESGgrid_NX: 275
+  ESGgrid_NY: 333
+  ESGgrid_WIDE_HALO_WIDTH: 6
+  ESGgrid_PAZI: 0.0
 task_get_extrn_ics:
   EXTRN_MDL_NAME_ICS: HRRR
-  USE_USER_STAGED_EXTRN_FILES: true
-  EXTRN_MDL_FILES_ICS:
-  - '{yy}{jjj}{hh}00{fcst_hr:02d}00'
-  EXTRN_MDL_SOURCE_BASEDIR_ICS: /Users/Natalie/UFS_SRW_data/develop/input_model_data/HRRR/${yyyymmddhh}
+  FV3GFS_FILE_FMT_ICS: grib2
+  USE_USER_STAGED_EXTRN_FILES: false
+  EXTRN_MDL_SOURCE_BASEDIR_ICS: "/Users/bkirtman/UFS_SRW_data/input_model_data/HRRR/grib2/2025010618"
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: HRRR
-  LBC_SPEC_INTVL_HRS: 3
-  USE_USER_STAGED_EXTRN_FILES: true
-  EXTRN_MDL_FILES_LBCS:
-  - '{yy}{jjj}{hh}00{fcst_hr:02d}00'
-  EXTRN_MDL_SOURCE_BASEDIR_LBCS: /Users/Natalie/UFS_SRW_data/develop/input_model_data/HRRR/${yyyymmddhh}
-global:
-  DO_ENSEMBLE: false
-  NUM_ENS_MEMBERS: 1
-  DO_SHUM: true
-  DO_SPPT: true
-  DO_SKEB: true
-  DO_SPP: true
-platform:
-  BUILD_MOD_FN: build_macos_gnu
-  EXTRN_MDL_DATA_STORES: disk
+  LBC_SPEC_INTVL_HRS: 1
+  FV3GFS_FILE_FMT_LBCS: grib2
+  USE_USER_STAGED_EXTRN_FILES: false
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: "/Users/bkirtman/UFS_SRW_data/input_model_data/HRRR/grib2/2025010618"
+  EXTRN_MDL_LBCS_MAX_FCST_HRS: 48
+  EXTRN_MDL_LBCS_BRIDGE_INTVL_HRS: 24
 task_run_fcst:
-  OMP_NUM_THREADS_RUN_FCST: 1
+  DT_ATMOS: 15
   QUILTING: true
-  LAYOUT_X: 1
-  LAYOUT_Y: 7
-  BLOCKSIZE: 40
+  LAYOUT_X: 3
+  LAYOUT_Y: 5
+  BLOCKSIZE: 35
   QUILTING: true
   WRTCMP_write_groups: 1
   WRTCMP_write_tasks_per_group: 1
+  WRTCMP_output_grid: lambert_conformal
+  WRTCMP_cen_lon: '{{ task_make_grid.ESGgrid_LON_CTR }}'
+  WRTCMP_cen_lat: '{{ task_make_grid.ESGgrid_LAT_CTR }}'
+  WRTCMP_lon_lwr_left: -119.25
+  WRTCMP_lat_lwr_left: 33.50
+  WRTCMP_stdlat1: '{{ task_make_grid.ESGgrid_LAT_CTR }}'
+  WRTCMP_stdlat2: '{{ task_make_grid.ESGgrid_LAT_CTR }}'
+  WRTCMP_nx: 150
+  WRTCMP_ny: 150
+  WRTCMP_dx: '{{ task_make_grid.ESGgrid_DELX }}'
+  WRTCMP_dy: '{{ task_make_grid.ESGgrid_DELY }}'
+task_run_post:
+  POST_OUTPUT_DOMAIN_NAME: Palisades2
 task_plot_allvars:
   COMOUT_REF: ""
+global:
+  DO_ENSEMBLE: false  
+  NUM_ENS_MEMBERS: 2
 rocoto:
   tasks:
-    taskgroups: '{{ ["parm/wflow/prep.yaml", "parm/wflow/coldstart.yaml", "parm/wflow/post.yaml", "parm/wflow/plot.yaml" ]|include }}'
+    taskgroups: '{{ ["parm/wflow/prep.yaml", "parm/wflow/coldstart.yaml" ]|include }}'
     metatask_run_ensemble:
       task_run_fcst_mem#mem#:
-        walltime: 10:00:00
-  task_plot_allvars:
-    PLOT_FCST_START: 0
-    PLOT_FCST_INC: 1
-    PLOT_FCST_END: 3
+        walltime: 72:00:00
