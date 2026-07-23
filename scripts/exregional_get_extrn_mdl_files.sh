@@ -290,7 +290,13 @@ fi
 #
 if [ "${ICS_OR_LBCS}" = "LBCS" ] && [ "${lbcs_bridging}" = "YES" ]; then
 
-  base_defns_fp="${EXTRN_MDL_STAGING_DIR}${mem_dir}/${EXTRN_DEFNS}"
+  # Capture the real staging directory now, before sourcing any bridge
+  # summary file below -- each one defines its own EXTRN_MDL_STAGING_DIR
+  # (set to that bridge's own output_path), and sourcing it would
+  # otherwise clobber this variable for the rest of the script.
+  lbcs_staging_dir="${EXTRN_MDL_STAGING_DIR}${mem_dir}"
+
+  base_defns_fp="${lbcs_staging_dir}/${EXTRN_DEFNS}"
   EXTRN_MDL_FNS=()
   EXTRN_MDL_FHRS=()
   . "${base_defns_fp}"
@@ -298,11 +304,20 @@ if [ "${ICS_OR_LBCS}" = "LBCS" ] && [ "${lbcs_bridging}" = "YES" ]; then
   combined_fhrs=( "${EXTRN_MDL_FHRS[@]}" )
 
   bridge_additional_flags=""
+  bridge_data_stores="${EXTRN_MDL_DATA_STORES}"
   if [ -n "${file_fmt:-}" ] ; then
     bridge_additional_flags="$bridge_additional_flags --file_fmt ${file_fmt}"
   fi
   if [ -n "${file_names:-}" ] ; then
     bridge_additional_flags="$bridge_additional_flags --file_templates ${file_names[@]}"
+  fi
+  if [ -n "${input_file_path:-}" ] ; then
+    # input_file_path may contain date/time templates (e.g. {yyyymmddhh})
+    # that retrieve_data.py fills in per-call using each bridge cycle's
+    # own --cycle_date, so the same staging convention used for the base
+    # cycle also works for locally-staged bridge cycles.
+    bridge_data_stores="disk ${EXTRN_MDL_DATA_STORES}"
+    bridge_additional_flags="$bridge_additional_flags --input_file_path ${input_file_path}"
   fi
   if [ $(boolify $SYMLINK_FIX_FILES) = "TRUE" ]; then
     bridge_additional_flags="$bridge_additional_flags --symlink"
@@ -323,7 +338,7 @@ if [ "${ICS_OR_LBCS}" = "LBCS" ] && [ "${lbcs_bridging}" = "YES" ]; then
     candidate_cdate=${source_cdate}
     while [ "${search_hrs}" -lt "${EXTRN_MDL_LBCS_BRIDGE_INTVL_HRS}" ]; do
 
-      bridge_dir="${EXTRN_MDL_STAGING_DIR}${mem_dir}/bridge_${candidate_cdate}"
+      bridge_dir="${lbcs_staging_dir}/bridge_${candidate_cdate}"
       mkdir -p "${bridge_dir}"
       bridge_defns="bridge_${candidate_cdate}.sh"
 
@@ -333,7 +348,7 @@ if [ "${ICS_OR_LBCS}" = "LBCS" ] && [ "${lbcs_bridging}" = "YES" ]; then
         --file_set ${file_set} \
         --config ${PARMdir}/data_locations.yml \
         --cycle_date ${candidate_cdate} \
-        --data_stores ${EXTRN_MDL_DATA_STORES} \
+        --data_stores ${bridge_data_stores} \
         --data_type ${EXTRN_MDL_NAME} \
         --fcst_hrs ${LBC_SPEC_INTVL_HRS} ${block_len} ${LBC_SPEC_INTVL_HRS} \
         --ics_or_lbcs ${ICS_OR_LBCS} \
@@ -370,7 +385,7 @@ available (needed to cover relative forecast hours $((offset + LBC_SPEC_INTVL_HR
     for idx in "${!EXTRN_MDL_FNS[@]}"; do
       rel_fhr=$(( offset + EXTRN_MDL_FHRS[$idx] ))
       new_fn="bridge.f$(printf %03d ${rel_fhr}).$(basename ${EXTRN_MDL_FNS[$idx]})"
-      ln -sf "${bridge_dir}/${EXTRN_MDL_FNS[$idx]}" "${EXTRN_MDL_STAGING_DIR}${mem_dir}/${new_fn}"
+      ln -sf "${bridge_dir}/${EXTRN_MDL_FNS[$idx]}" "${lbcs_staging_dir}/${new_fn}"
       combined_fns+=( "${new_fn}" )
       combined_fhrs+=( "${rel_fhr}" )
     done
@@ -383,7 +398,7 @@ available (needed to cover relative forecast hours $((offset + LBC_SPEC_INTVL_HR
   {
     echo "DATA_SRC=disk_and_bridge"
     echo "EXTRN_MDL_CDATE=${EXTRN_MDL_CDATE}"
-    echo "EXTRN_MDL_STAGING_DIR=${EXTRN_MDL_STAGING_DIR}${mem_dir}"
+    echo "EXTRN_MDL_STAGING_DIR=${lbcs_staging_dir}"
     echo "EXTRN_MDL_FNS=( ${combined_fns[@]} )"
     echo "EXTRN_MDL_FHRS=( ${combined_fhrs[@]} )"
   } > "${base_defns_fp}"

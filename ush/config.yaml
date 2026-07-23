@@ -11,18 +11,18 @@ workflow:
   EXPT_SUBDIR: Palisades_f84h
   CCPP_PHYS_SUITE: FV3_WoFS_v0
   DATE_FIRST_CYCL: '2025010618'
-  DATE_LAST_CYCL: '2025010918'
+  DATE_LAST_CYCL: '2025010818'
   FCST_LEN_HRS: 84
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
   COMPILER: gnu
 task_make_grid:
-  ESGgrid_LON_CTR: -118.50
+  ESGgrid_LON_CTR: -118.75
   ESGgrid_LAT_CTR: 34.50
   ESGgrid_DELX: 1000.0
   ESGgrid_DELY: 1000.0
-  ESGgrid_NX: 275
-  ESGgrid_NY: 333
+  ESGgrid_NX: 310
+  ESGgrid_NY: 300
   ESGgrid_WIDE_HALO_WIDTH: 6
   ESGgrid_PAZI: 0.0
 task_get_extrn_ics:
@@ -35,9 +35,9 @@ task_get_extrn_lbcs:
   LBC_SPEC_INTVL_HRS: 1
   FV3GFS_FILE_FMT_LBCS: grib2
   USE_USER_STAGED_EXTRN_FILES: false
-  EXTRN_MDL_SOURCE_BASEDIR_LBCS: "/Users/bkirtman/UFS_SRW_data/input_model_data/HRRR/grib2/2025010618"
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: "/Users/bkirtman/UFS_SRW_data/input_model_data/HRRR/grib2/{yyyymmddhh}"
   EXTRN_MDL_LBCS_MAX_FCST_HRS: 48
-  EXTRN_MDL_LBCS_BRIDGE_INTVL_HRS: 24
+  EXTRN_MDL_LBCS_BRIDGE_INTVL_HRS: 48
 task_run_fcst:
   DT_ATMOS: 15
   QUILTING: true
